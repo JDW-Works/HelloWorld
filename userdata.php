@@ -94,9 +94,9 @@ if ($stmt) {
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
-<div class="container mx-auto bg-white p-6 rounded-lg shadow-lg">
+<div class="container mx-auto max-w-screen-lg bg-white p-6 rounded-lg shadow-lg overflow-x-auto">
     <h1 class="text-3xl font-bold mb-4 text-indigo-700">使用者資料管理</h1>
-    <form method="get" class="mb-4 flex">
+    <form method="get" class="mb-4 flex w-full">
         <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="搜尋名稱" class="flex-grow border border-gray-300 p-2 rounded-l">
         <button type="submit" class="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 rounded-r">查詢</button>
     </form>
@@ -138,7 +138,7 @@ if ($stmt) {
                     $status = $r['u_status'] ?? '';
                     $statusTextMap = ['1' => '啟用', '0' => '停用', '2' => '刪除'];
                     $statusClassMap = [
-                        '1' => 'bg-green-200 text-green-800',
+                        '1' => 'bg-green-500 text-white animate-pulse',
                         '0' => 'bg-yellow-200 text-yellow-800',
                         '2' => 'bg-red-200 text-red-800'
                     ];
