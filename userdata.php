@@ -1,5 +1,23 @@
 <?php
-require_once("lib/link.php");
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// SQL Server 連線資訊
+$serverName = "127.0.0.1"; // 依你的實際 server 調整，預設本機
+$uid = "iccldbuser";
+$pwd = "JqewefqxSKHXisQ";
+$database = "ICCLdb";
+$connectionOptions = [
+    "Database" => $database,
+    "Uid" => $uid,
+    "PWD" => $pwd,
+    "CharacterSet" => "UTF-8"
+];
+$conn = sqlsrv_connect($serverName, $connectionOptions);
+if ($conn === false) {
+    die(print_r(sqlsrv_errors(), true));
+}
 
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $action = isset($_POST['action']) ? $_POST['action'] : '';
@@ -38,24 +56,33 @@ if ($action === 'add') {
         $_POST['nextAgency'],
         $_POST['u_id']
     ];
-    $DB->query($updateSQL, $updateParams);
+    sqlsrv_query($conn, $updateSQL, $updateParams);
     header('Location: userdata.php');
     exit;
 } elseif ($action === 'delete') {
     $deleteSQL = "UPDATE userdata SET u_status='2' WHERE u_id=?";
-    $DB->query($deleteSQL, [$_POST['u_id']]);
+    sqlsrv_query($conn, $deleteSQL, [$_POST['u_id']]);
     header('Location: userdata.php');
     exit;
 }
 
+// 查詢資料
 $sql = "SELECT * FROM userdata";
+$params = [];
 if ($search !== '') {
-    $sql .= " WHERE u_name LIKE '%" . $search . "%'";
+    $sql .= " WHERE u_name LIKE ?";
+    $params[] = "%$search%";
 }
-$DB->query($sql);
+$stmt = sqlsrv_query($conn, $sql, $params);
+
 $rows = [];
-while ($row = $DB->fetchObject()) {
-    $rows[] = $row;
+if ($stmt) {
+    while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        $rows[] = $row;
+    }
+} else {
+    // 查詢錯誤
+    die(print_r(sqlsrv_errors(), true));
 }
 ?>
 <!DOCTYPE html>
@@ -96,34 +123,35 @@ while ($row = $DB->fetchObject()) {
         <tbody>
         <?php foreach ($rows as $r): ?>
             <tr class="text-center">
-                <td class="border px-2 py-1"><?php echo $r->u_id; ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_idno); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_name); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_passwd); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_org); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_auth); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_mail); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->c_name); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->c_tel); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_company); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->u_status); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->chCreateDate); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->chUpdateDate); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r->nextAgency); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_id'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_idno'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_name'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_passwd'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_org'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_auth'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_mail'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['c_name'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['c_tel'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_company'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_status'] ?? ''); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars(isset($r['chCreateDate']) && is_object($r['chCreateDate']) ? $r['chCreateDate']->format('Y-m-d H:i:s') : ($r['chCreateDate'] ?? '')); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars(isset($r['chUpdateDate']) && is_object($r['chUpdateDate']) ? $r['chUpdateDate']->format('Y-m-d H:i:s') : ($r['chUpdateDate'] ?? '')); ?></td>
+                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['nextAgency'] ?? ''); ?></td>
                 <td class="border px-2 py-1">
                     <form method="post" class="inline">
-                        <input type="hidden" name="u_id" value="<?php echo $r->u_id; ?>">
+                        <input type="hidden" name="u_id" value="<?php echo $r['u_id']; ?>">
                         <button type="submit" name="action" value="delete" class="text-red-600">刪除</button>
                     </form>
                 </td>
             </tr>
+
         <?php endforeach; ?>
         </tbody>
     </table>
     <div class="bg-white p-4 rounded shadow">
         <h2 class="text-xl font-bold mb-2">新增 / 修改 使用者</h2>
         <form method="post" class="grid grid-cols-2 gap-4">
-            <input type="hidden" name="u_id" value="<?php echo isset($_GET['edit']) ? intval($_GET['edit']) : ''; ?>">
+            <input type="hidden" name="u_id" value="">
             <div>
                 <label class="block">帳號</label>
                 <input type="text" name="u_idno" class="w-full border p-2" required>
