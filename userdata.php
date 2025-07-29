@@ -93,15 +93,15 @@ if ($stmt) {
     <title>使用者資料</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
-<div class="container mx-auto">
-    <h1 class="text-3xl font-bold mb-4">使用者資料管理</h1>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+<div class="container mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-4 text-indigo-700">使用者資料管理</h1>
     <form method="get" class="mb-4 flex">
         <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="搜尋名稱" class="flex-grow border border-gray-300 p-2 rounded-l">
-        <button type="submit" class="bg-blue-500 text-white px-4 rounded-r">查詢</button>
+        <button type="submit" class="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 rounded-r">查詢</button>
     </form>
     <table class="min-w-full bg-white border border-gray-200 mb-4">
-        <thead>
+        <thead class="bg-indigo-600 text-white">
             <tr>
                 <th class="px-2 py-1 border">ID</th>
                 <th class="px-2 py-1 border">帳號</th>
@@ -122,7 +122,7 @@ if ($stmt) {
         </thead>
         <tbody>
         <?php foreach ($rows as $r): ?>
-            <tr class="text-center">
+            <tr class="text-center odd:bg-white even:bg-gray-50">
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_id'] ?? ''); ?></td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_idno'] ?? ''); ?></td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_name'] ?? ''); ?></td>
@@ -133,7 +133,22 @@ if ($stmt) {
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['c_name'] ?? ''); ?></td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['c_tel'] ?? ''); ?></td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_company'] ?? ''); ?></td>
-                <td class="border px-2 py-1"><?php echo htmlspecialchars($r['u_status'] ?? ''); ?></td>
+                <td class="border px-2 py-1">
+                    <?php
+                    $status = $r['u_status'] ?? '';
+                    $statusTextMap = ['1' => '啟用', '0' => '停用', '2' => '刪除'];
+                    $statusClassMap = [
+                        '1' => 'bg-green-200 text-green-800',
+                        '0' => 'bg-yellow-200 text-yellow-800',
+                        '2' => 'bg-red-200 text-red-800'
+                    ];
+                    $statusText = $statusTextMap[$status] ?? $status;
+                    $statusClass = $statusClassMap[$status] ?? 'bg-gray-200 text-gray-800';
+                    ?>
+                    <span class="px-2 py-1 rounded <?php echo $statusClass; ?>">
+                        <?php echo htmlspecialchars($statusText); ?>
+                    </span>
+                </td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars(isset($r['chCreateDate']) && is_object($r['chCreateDate']) ? $r['chCreateDate']->format('Y-m-d H:i:s') : ($r['chCreateDate'] ?? '')); ?></td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars(isset($r['chUpdateDate']) && is_object($r['chUpdateDate']) ? $r['chUpdateDate']->format('Y-m-d H:i:s') : ($r['chUpdateDate'] ?? '')); ?></td>
                 <td class="border px-2 py-1"><?php echo htmlspecialchars($r['nextAgency'] ?? ''); ?></td>
@@ -148,8 +163,8 @@ if ($stmt) {
         <?php endforeach; ?>
         </tbody>
     </table>
-    <div class="bg-white p-4 rounded shadow">
-        <h2 class="text-xl font-bold mb-2">新增 / 修改 使用者</h2>
+    <div class="bg-indigo-50 p-4 rounded shadow">
+        <h2 class="text-xl font-bold mb-2 text-indigo-700">新增 / 修改 使用者</h2>
         <form method="post" class="grid grid-cols-2 gap-4">
             <input type="hidden" name="u_id" value="">
             <div>
@@ -201,8 +216,8 @@ if ($stmt) {
                 <input type="text" name="nextAgency" class="w-full border p-2">
             </div>
             <div class="col-span-2 flex justify-end space-x-2">
-                <button type="submit" name="action" value="add" class="bg-blue-500 text-white px-4 py-2 rounded">新增</button>
-                <button type="submit" name="action" value="update" class="bg-green-500 text-white px-4 py-2 rounded">修改</button>
+                <button type="submit" name="action" value="add" class="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded">新增</button>
+                <button type="submit" name="action" value="update" class="bg-gradient-to-r from-green-500 to-lime-500 text-white px-4 py-2 rounded">修改</button>
             </div>
         </form>
     </div>
