@@ -22,6 +22,11 @@ if ($conn === false) {
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $action = isset($_POST['action']) ? $_POST['action'] : '';
 
+// 分頁設定
+$perPage = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $perPage;
+
 if ($action === 'add') {
     $insertFileSQL = "INSERT INTO userdata (u_idno, u_name, u_passwd, u_org, u_auth, u_mail, c_name, c_tel, u_company, u_status, chCreateDate, chUpdateDate, nextAgency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE(), ?)";
     $fileParams = [
@@ -67,13 +72,28 @@ if ($action === 'add') {
 }
 
 // 查詢資料
-$sql = "SELECT * FROM userdata";
+$baseSql = "FROM userdata";
+$conditions = [];
 $params = [];
 if ($search !== '') {
-    $sql .= " WHERE u_name LIKE ?";
+    $conditions[] = "u_name LIKE ?";
     $params[] = "%$search%";
 }
-$stmt = sqlsrv_query($conn, $sql, $params);
+$where = $conditions ? (" WHERE " . implode(" AND ", $conditions)) : "";
+
+// 總筆數計算
+$countSql = "SELECT COUNT(*) AS cnt " . $baseSql . $where;
+$countStmt = sqlsrv_query($conn, $countSql, $params);
+$total = 0;
+if ($countStmt && ($cRow = sqlsrv_fetch_array($countStmt, SQLSRV_FETCH_ASSOC))) {
+    $total = (int)($cRow['cnt'] ?? 0);
+}
+$totalPages = max(1, ceil($total / $perPage));
+
+// 取回當前頁資料
+$dataSql = "SELECT * " . $baseSql . $where . " ORDER BY u_id OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+$dataParams = array_merge($params, [$offset, $perPage]);
+$stmt = sqlsrv_query($conn, $dataSql, $dataParams);
 
 $rows = [];
 if ($stmt) {
@@ -163,6 +183,13 @@ if ($stmt) {
         <?php endforeach; ?>
         </tbody>
     </table>
+    <div class="my-4 flex justify-center space-x-1">
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <a href="?page=<?php echo $i; ?><?php echo $search !== '' ? '&search=' . urlencode($search) : ''; ?>" class="px-3 py-1 rounded <?php echo $i == $page ? 'bg-indigo-600 text-white' : 'bg-gray-200'; ?>">
+                <?php echo $i; ?>
+            </a>
+        <?php endfor; ?>
+    </div>
     <div class="bg-indigo-50 p-4 rounded shadow">
         <h2 class="text-xl font-bold mb-2 text-indigo-700">新增 / 修改 使用者</h2>
         <form method="post" class="grid grid-cols-2 gap-4">
