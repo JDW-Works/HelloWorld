@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>表單範例</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-6 text-center">範例表單</h1>
+    <form>
+      <div class="mb-4">
+        <label class="block text-gray-700">名稱</label>
+        <input type="text" class="mt-1 w-full border border-gray-300 p-2 rounded" placeholder="請輸入名稱">
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-700">描述</label>
+        <textarea class="mt-1 w-full border border-gray-300 p-2 rounded" placeholder="請輸入描述"></textarea>
+      </div>
+      <div class="flex space-x-2">
+        <button type="button" class="flex-1 bg-blue-500 text-white py-2 rounded">新增</button>
+        <button type="button" class="flex-1 bg-red-500 text-white py-2 rounded">刪除</button>
+        <button type="button" class="flex-1 bg-green-500 text-white py-2 rounded">修改</button>
+        <button type="button" class="flex-1 bg-gray-500 text-white py-2 rounded">查詢</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
