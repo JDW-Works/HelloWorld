@@ -715,6 +715,28 @@ function sortTableByText(tableId, colIndex, asc){
         $table.children("tbody").append(row);
     });
 }
+function sortTableByRiver(tableId, colIndex, asc){
+    const orderMap = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9,"十":10};
+    const $table = $("#"+tableId);
+    const $rows = $table.find("tbody > tr").get();
+    // 例如：一河-01、二河-03、十河-01
+    $rows.sort(function(a,b){
+        const textA = $(a).children().eq(colIndex).text().trim();
+        const textB = $(b).children().eq(colIndex).text().trim();
+        const matchA = textA.match(/^([一二三四五六七八九十])河-(\d+)/);
+        const matchB = textB.match(/^([一二三四五六七八九十])河-(\d+)/);
+        const keyA = matchA ? [orderMap[matchA[1]], parseInt(matchA[2],10)] : [999,999];
+        const keyB = matchB ? [orderMap[matchB[1]], parseInt(matchB[2],10)] : [999,999];
+        if(keyA[0] === keyB[0]){
+            return asc ? keyA[1] - keyB[1] : keyB[1] - keyA[1];
+        }
+        return asc ? keyA[0] - keyB[0] : keyB[0] - keyA[0];
+    });
+    $.each($rows, function(_, row){
+        $table.children("tbody").append(row);
+    });
+}
+
 
 function sortTableByCity(tableId, colIndex, asc){
     const $table = $("#"+tableId);
@@ -735,7 +757,7 @@ function sortTableByCity(tableId, colIndex, asc){
 
 function applySupportSort(){
     if(supportSort.column === 'support'){
-        sortTableByText('supportTable',0,supportSort.asc);
+        sortTableByRiver('supportTable',0,supportSort.asc);
     }else if(supportSort.column === 'city'){
         sortTableByCity('supportTable',2,supportSort.asc);
     }
@@ -762,7 +784,7 @@ $(function (){
         });
     });
 
-    // 點擊支援欄位排序
+    // 點擊支援欄位排序（如：一河-01）
     $(document).on('click', '#supportTable th.sort-support', function(){
         supportSort.asc = supportSort.column === 'support' ? !supportSort.asc : true;
         supportSort.column = 'support';
