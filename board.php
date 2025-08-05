@@ -69,6 +69,9 @@ if($row = $DB->fetchObject()){
             background:#f7f7f7;
             z-index:10;
         }
+        .sortable{
+            cursor:pointer;
+        }
     </style>
 </head>
 <body>
@@ -473,12 +476,12 @@ $pumpnum_wra_c_qr = $pumpnum_wra_qr - $pumpnum_wra_a_qr - $pumpnum_wra_b_qr - $p
                                     <div id="supportStandbyTables">
 
                                     <!--────────── 支援 ──────────-->
-                                    <table class="table table-striped mb-0 table-hover">
+                                    <table id="supportTable" class="table table-striped mb-0 table-hover">
                                         <thead>
                                         <tr>
-                                            <th width="15%">支援</th>
+                                            <th width="15%" class="sortable sort-support">支援</th>
                                             <th width="10%">目前狀態</th>
-                                            <th width="15%">支援縣市</th>
+                                            <th width="15%" class="sortable sort-city">支援縣市</th>
                                             <th width="15%">支援鄉鎮</th>
                                             <th width="15%">支援地點</th>
                                             <th width="10%">現在位置</th>
@@ -568,12 +571,12 @@ $pumpnum_wra_c_qr = $pumpnum_wra_qr - $pumpnum_wra_a_qr - $pumpnum_wra_b_qr - $p
 
 
                                     <!--────────── 待命 ──────────-->
-                                    <table class="table table-striped mb-0 table-hover">
+                                    <table id="standbyTable" class="table table-striped mb-0 table-hover">
                                         <thead>
                                         <tr>
-                                            <th width="15%">借用待命</th>
+                                            <th width="15%" class="sortable sort-support">借用待命</th>
                                             <th width="10%">目前狀態</th>
-                                            <th width="15%">支援縣市</th>
+                                            <th width="15%" class="sortable sort-city">支援縣市</th>
                                             <th width="15%">支援鄉鎮</th>
                                             <th width="15%">支援地點</th>
                                             <th width="10%">現在位置</th>
@@ -696,6 +699,56 @@ $pumpnum_wra_c_qr = $pumpnum_wra_qr - $pumpnum_wra_a_qr - $pumpnum_wra_b_qr - $p
 /*------------------------------------------------------------
 |  客製前端互動
 |------------------------------------------------------------*/
+const cityOrder = <?php echo json_encode($city_order, JSON_UNESCAPED_UNICODE); ?>;
+let supportSort = {column: '', asc: true};
+let standbySort = {column: '', asc: true};
+
+function sortTableByText(tableId, colIndex, asc){
+    const $table = $("#"+tableId);
+    const $rows = $table.find("tbody > tr").get();
+    $rows.sort(function(a,b){
+        const keyA = $(a).children().eq(colIndex).text().trim();
+        const keyB = $(b).children().eq(colIndex).text().trim();
+        return asc ? keyA.localeCompare(keyB) : keyB.localeCompare(keyA);
+    });
+    $.each($rows, function(_, row){
+        $table.children("tbody").append(row);
+    });
+}
+
+function sortTableByCity(tableId, colIndex, asc){
+    const $table = $("#"+tableId);
+    const $rows = $table.find("tbody > tr").get();
+    $rows.sort(function(a,b){
+        const cityA = $(a).children().eq(colIndex).text().trim();
+        const cityB = $(b).children().eq(colIndex).text().trim();
+        let idxA = cityOrder.indexOf(cityA);
+        let idxB = cityOrder.indexOf(cityB);
+        idxA = idxA === -1 ? 999 : idxA;
+        idxB = idxB === -1 ? 999 : idxB;
+        return asc ? idxA - idxB : idxB - idxA;
+    });
+    $.each($rows, function(_, row){
+        $table.children("tbody").append(row);
+    });
+}
+
+function applySupportSort(){
+    if(supportSort.column === 'support'){
+        sortTableByText('supportTable',0,supportSort.asc);
+    }else if(supportSort.column === 'city'){
+        sortTableByCity('supportTable',2,supportSort.asc);
+    }
+}
+
+function applyStandbySort(){
+    if(standbySort.column === 'support'){
+        sortTableByText('standbyTable',0,standbySort.asc);
+    }else if(standbySort.column === 'city'){
+        sortTableByCity('standbyTable',2,standbySort.asc);
+    }
+}
+
 $(function (){
 
     /* — 搜尋鄉鎮/縣市 — */
@@ -707,6 +760,31 @@ $(function (){
                 $(this).find("td:nth-child(4)").text().toLowerCase().indexOf(value) > -1
             );
         });
+    });
+
+    // 點擊支援欄位排序
+    $(document).on('click', '#supportTable th.sort-support', function(){
+        supportSort.asc = supportSort.column === 'support' ? !supportSort.asc : true;
+        supportSort.column = 'support';
+        applySupportSort();
+    });
+
+    $(document).on('click', '#supportTable th.sort-city', function(){
+        supportSort.asc = supportSort.column === 'city' ? !supportSort.asc : true;
+        supportSort.column = 'city';
+        applySupportSort();
+    });
+
+    $(document).on('click', '#standbyTable th.sort-support', function(){
+        standbySort.asc = standbySort.column === 'support' ? !standbySort.asc : true;
+        standbySort.column = 'support';
+        applyStandbySort();
+    });
+
+    $(document).on('click', '#standbyTable th.sort-city', function(){
+        standbySort.asc = standbySort.column === 'city' ? !standbySort.asc : true;
+        standbySort.column = 'city';
+        applyStandbySort();
     });
 
     /* — 下載分署調度狀況 (Word) — */
@@ -737,6 +815,8 @@ setInterval(function(){
     $rightBox.load(location.href + " #supportStandbyTables > *", function(){
         $rightBox.scrollTop(rightScrollTop);
         $("#searchInput").trigger("keyup");
+        applySupportSort();
+        applyStandbySort();
     });
 }, 5000);
 
