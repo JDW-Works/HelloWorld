@@ -490,27 +490,78 @@ $pumpnum_wra_c_qr = $pumpnum_wra_qr - $pumpnum_wra_a_qr - $pumpnum_wra_b_qr - $p
                                         </thead>
                                         <tbody>
                                         <?php
-                                        // 建立支援資料（示例）
+                                        // 收集所有支援資料
                                         $all_support = [];
-                                        $rivers = ['一河','二河','三河','四河','五河','六河','七河','八河','九河','十河'];
-                                        foreach($rivers as $river){
-                                            for($i=1;$i<=99;$i++){
+                                        foreach($pump_support as $o_id=>$supportArr){
+                                            foreach($supportArr as $pid=>$pname){
+                                                $pd_idno    = PumpData($pid,"pd_idno");
+                                                $use_status = PumpData($pid,"use_status");
+                                                $rd_lat     = RespondDataappData($pd_idno,"rd_lat");
+                                                $rd_lon     = RespondDataappData($pd_idno,"rd_lon");
+                                                $rd_opdate  = RespondDataappData($pd_idno,"rd_opdate");
+                                                $qr_latitude   = QRpumpstatusData($pid,"latitude");
+                                                $qr_longitude  = QRpumpstatusData($pid,"longitude");
+                                                $qr_opdate     = QRpumpstatusData($pid,"create_datetime");
+                                                $use_status_QR = PumpData($pid,"use_status_QRcode");
+                                                $qr_status     = $use_status_QR!="" ? $pump_stage_array[$use_status_QR] : $pump_stage_array[0];
+                                                $status = $qr_opdate >= $rd_opdate ? $qr_status : $pump_stage_array[$use_status];
+
+                                                $pd_sporg    = PumpDispatchData($ev_id,$pid,"pd_sporg");
+                                                $pd_spzone   = PumpDispatchData($ev_id,$pid,"pd_spzone");
+                                                $pd_location = PumpDispatchData($ev_id,$pid,"pd_location");
+                                                $args_str    = rawurlencode(CryptCode("ev_id=$ev_id&pump_id=$pid","E",CRYPT_KEY));
+                                                $pd_latitude = $qr_opdate >= $rd_opdate ? $qr_latitude : $rd_lat;
+                                                $pd_longitude = $qr_opdate >= $rd_opdate ? $qr_longitude : $rd_lon;
                                                 $all_support[] = [
-                                                    'pd_idno' => sprintf('%s-%02d', $river, $i)
+                                                    'o_id'        => $o_id,
+                                                    'pid'         => $pid,
+                                                    'pname'       => $pname,
+                                                    'pd_idno'     => $pd_idno,
+                                                    'status'      => $status,
+                                                    'pd_sporg'    => $pd_sporg,
+                                                    'pd_spzone'   => $pd_spzone,
+                                                    'pd_location' => $pd_location,
+                                                    'args_str'    => $args_str,
+                                                    'pd_latitude' => $pd_latitude,
+                                                    'pd_longitude'=> $pd_longitude
                                                 ];
                                             }
                                         }
+                                        // 依支援縣市排序
+                                        usort($all_support, function($a, $b) use ($city_order){
+                                            $a_idx = array_search($a['pd_sporg'], $city_order);
+                                            $b_idx = array_search($b['pd_sporg'], $city_order);
+                                            $a_idx = ($a_idx === false) ? 999 : $a_idx;
+                                            $b_idx = ($b_idx === false) ? 999 : $b_idx;
+                                            return $a_idx - $b_idx;
+                                        });
+
 
                                         foreach($all_support as $row){
                                         ?>
                                             <tr>
-                                                <td><?php echo $row['pd_idno']; ?></td>
-                                                <td>-</td>
-                                                <td>-</td>
-                                                <td>-</td>
-                                                <td>-</td>
-                                                <td>-</td>
-                                                <td>-</td>
+                                                <td>
+                                                    <a data-fancybox data-type="iframe"
+                                                    class="btn btn-pump bgcolor<?php echo $row['o_id'];?>"
+                                                    href="board_add.php?arg=<?php echo $row['args_str'];?>">
+                                                        <?php echo $row['pd_idno'];?>
+                                                    </a>
+                                                </td>
+                                                <td><?php echo $row['status']; ?></td>
+                                                <td><?php echo $row['pd_sporg']; ?></td>
+                                                <td><?php echo $row['pd_spzone']; ?></td>
+                                                <td><?php echo $row['pd_location']; ?></td>
+                                                <td>
+                                                    <a class="btn btn-pump bgcolor<?php echo $row['o_id'];?>"
+                                                    target="_blank"
+                                                    href="nowposition.php?nowlat=<?php echo $row['pd_latitude'];?>&nowlng=<?php echo $row['pd_longitude'];?>&pd_idno=<?php echo $row['pd_idno'];?>">
+                                                        現在位置
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a class="btn btn-pump bgcolor<?php echo $row['o_id'];?>"
+                                                    href="#" onclick="alertcontact(<?php echo $row['pid'];?>)">聯絡人</a>
+                                                </td>
                                             </tr>
                                         <?php
                                         }
@@ -649,14 +700,8 @@ $pumpnum_wra_c_qr = $pumpnum_wra_qr - $pumpnum_wra_a_qr - $pumpnum_wra_b_qr - $p
 |  客製前端互動
 |------------------------------------------------------------*/
 const cityOrder = <?php echo json_encode($city_order, JSON_UNESCAPED_UNICODE); ?>;
-const riverOrder = {"一河":1,"二河":2,"三河":3,"四河":4,"五河":5,"六河":6,"七河":7,"八河":8,"九河":9,"十河":10};
 let supportSort = {column: '', asc: true};
 let standbySort = {column: '', asc: true};
-
-function parseSupportOrder(text){
-    const prefix = text.split('-')[0];
-    return riverOrder[prefix] !== undefined ? riverOrder[prefix] : null;
-}
 
 function sortTableByText(tableId, colIndex, asc){
     const $table = $("#"+tableId);
@@ -664,16 +709,6 @@ function sortTableByText(tableId, colIndex, asc){
     $rows.sort(function(a,b){
         const keyA = $(a).children().eq(colIndex).text().trim();
         const keyB = $(b).children().eq(colIndex).text().trim();
-        const orderA = parseSupportOrder(keyA);
-        const orderB = parseSupportOrder(keyB);
-        if(orderA !== null && orderB !== null){
-            if(orderA === orderB){
-                const numA = parseInt(keyA.split('-')[1],10) || 0;
-                const numB = parseInt(keyB.split('-')[1],10) || 0;
-                return asc ? numA - numB : numB - numA;
-            }
-            return asc ? orderA - orderB : orderB - orderA;
-        }
         return asc ? keyA.localeCompare(keyB) : keyB.localeCompare(keyA);
     });
     $.each($rows, function(_, row){
