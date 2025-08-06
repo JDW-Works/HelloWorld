@@ -1,10 +1,22 @@
 <?php
     session_start();
-    require_once("lib/link.php");
-    require_once("common_page/head.php");    
-    require_once("lib/allotpage.php");
+    require_once('lib/link.php');
+    require_once('common_page/head.php');
+    require_once('lib/allotpage.php');
 
-    $pagename = "使用者與上級機關一覽";
+    // --- AJAX 更新 nextAgency ---
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_nextAgency') {
+        header('Content-Type: application/json');
+        $u_id = isset($_POST['u_id']) ? intval($_POST['u_id']) : 0;
+        $ids = isset($_POST['nextAgency']) && is_array($_POST['nextAgency']) ? array_map('intval', $_POST['nextAgency']) : [];
+        $nextAgencyStr = implode(',', $ids);
+        $update_sql = "UPDATE UserData SET nextAgency='$nextAgencyStr', chUpdateDate=GETDATE() WHERE u_id=$u_id";
+        $DB->query($update_sql);
+        echo json_encode(['status' => 'ok']);
+        exit;
+    }
+
+    $pagename = '使用者與上級機關一覽';
     $title = $pagename;
 
     // --- 篩選條件 ---
@@ -43,6 +55,15 @@
     $total_rows = ($row = $DB->fetchObject($count_rs)) ? intval($row->total) : 0;
     $total_pages = ceil($total_rows / $per_page);
     $offset = ($page - 1) * $per_page;
+
+    // 取得所有使用者供下拉選項使用
+    $all_users = [];
+    $all_users_sql = 'SELECT u_id, u_name FROM UserData ORDER BY u_name';
+    $all_users_rs = $DB->query($all_users_sql);
+    while($u = $DB->fetchObject($all_users_rs)) {
+        $all_users[] = ['id' => $u->u_id, 'text' => $u->u_name];
+    }
+    $all_users_json = json_encode($all_users);
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -51,6 +72,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo $title;?></title>
 <?php require("common/head_lib.php");?>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
     <div id="app">
@@ -136,15 +158,21 @@ echo '<tr>';
 echo '<th>使用者名稱</th>';
 echo '<th>上級機關u_id</th>';
 echo '<th>上級機關名稱</th>';
+echo '<th>操作</th>';
 echo '</tr>';
 echo '</thead>';
 echo '<tbody>';
 
 while($row = $DB->fetchObject($result)) {
-    echo '<tr>';
+    echo '<tr data-id="' . htmlspecialchars($row->u_id) . '">';
     echo '<td>' . htmlspecialchars($row->user_name ?? '') . '</td>';
-    echo '<td>' . htmlspecialchars($row->next_agency_ids ?? '') . '</td>';
-    echo '<td>' . htmlspecialchars($row->parent_names ?? '') . '</td>';
+    echo '<td class="ids-cell">' . htmlspecialchars($row->next_agency_ids ?? '') . '</td>';
+    echo '<td class="names-cell">' . htmlspecialchars($row->parent_names ?? '') . '</td>';
+    echo '<td>';
+    echo '<button type="button" class="btn btn-sm btn-primary edit-row">編輯</button>';
+    echo '<button type="button" class="btn btn-sm btn-success save-row d-none">儲存</button>';
+    echo '<button type="button" class="btn btn-sm btn-secondary cancel-row d-none">取消</button>';
+    echo '</td>';
     echo '</tr>';
 }
 
@@ -199,5 +227,45 @@ if ($total_pages > 1) {
     <script type="text/javascript" src="lib/jQuery-Timepicker-Addon-master/dist/i18n/jquery-ui-timepicker-addon-i18n.min.js"></script>
     <script type="text/javascript" src="lib/jQuery-Timepicker-Addon-master/dist/i18n/jquery-ui-timepicker-addon-zh-TW.js"></script>
     <script type="text/javascript" src="lib/jQuery-Timepicker-Addon-master/dist/jquery-ui-sliderAccess.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+    var allUsers = <?php echo $all_users_json; ?>;
+    var editingRow = null;
+
+    $(function(){
+        $('.edit-row').on('click', function(){
+            var tr = $(this).closest('tr');
+            if (editingRow && editingRow.get(0) !== tr.get(0)) {
+                alert('請先完成正在編輯的行');
+                return;
+            }
+            if (tr.hasClass('editing')) return;
+            editingRow = tr;
+            tr.addClass('editing');
+            var ids = tr.find('.ids-cell').text().trim();
+            ids = ids ? ids.split(',') : [];
+            var select = $('<select multiple class="form-select next-agency-select" style="min-width:200px"></select>');
+            allUsers.forEach(function(u){ select.append(new Option(u.text, u.id)); });
+            tr.find('.names-cell').html(select);
+            select.val(ids).trigger('change');
+            select.select2();
+            tr.find('.edit-row').addClass('d-none');
+            tr.find('.save-row, .cancel-row').removeClass('d-none');
+        });
+
+        $('.cancel-row').on('click', function(){
+            location.reload();
+        });
+
+        $('.save-row').on('click', function(){
+            var tr = $(this).closest('tr');
+            var u_id = tr.data('id');
+            var vals = tr.find('.next-agency-select').val() || [];
+            $.post('user_next_agency_list.php', {action:'update_nextAgency', u_id:u_id, nextAgency:vals}, function(res){
+                location.reload();
+            }, 'json');
+        });
+    });
+    </script>
 </body>
 </html>
