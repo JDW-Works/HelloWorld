@@ -355,12 +355,11 @@ tr:nth-child(odd) { background: #15202bcc; }
 }
 
 /* 標題區3D人頭樣式 */
-.title-head {
-  display: flex;
-  align-items: center;
+.flex-header-ai {
+  display: flex; align-items: flex-start; gap: 36px; flex-wrap: wrap;
 }
 @media (max-width: 900px) {
-  .title-head { flex-direction: column; align-items: flex-start; }
+  .flex-header-ai { flex-direction: column; gap: 12px; }
   #head3d-container { margin-left:0!important; margin-top:16px!important; }
 }
 #head3d-container {
@@ -385,34 +384,39 @@ tr:nth-child(odd) { background: #15202bcc; }
     <div id="main">
         <?php require_once("common_page/header.php");?>
         <div class="page-heading">
-            <!-- 🟦 標題＋3D人頭 區塊 -->
-            <div class="page-title">
-              <div class="row align-items-center">
-                <div class="col-12 col-md-8 order-md-1 order-last">
-                  <div class="title-head">
-                    <h3>
-                      抽水機 一般維護狀態 <span style="color:#19f0d7;text-shadow:0 0 10px #27e3ffbb;">AI 分析總覽</span>
-                    </h3>
-                    <div id="head3d-container"></div>
+            <!-- 🟦 標題＋3D人頭 flex 區塊（已精簡） -->
+            <div class="flex-header-ai" style="margin-bottom:16px;">
+              <div style="flex:1;min-width:250px;">
+                <div class="page-title">
+                  <div class="row">
+                      <div class="col-12 col-md-6 order-md-1 order-last">
+                          <h3>
+                              抽水機 一般維護狀態 <span style="color:#19f0d7;text-shadow:0 0 10px #27e3ffbb;">AI 分析總覽</span>
+                          </h3>
+                      </div>
+                      <div class="col-12 col-md-6 order-md-2 order-first">
+                          <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                              <ol class="breadcrumb">
+                                  <li class="breadcrumb-item"><a href="index.php">首頁</a></li>
+                                  <li class="breadcrumb-item active" aria-current="page">AI預測總覽</li>
+                              </ol>
+                          </nav>
+                      </div>
                   </div>
                 </div>
-                <div class="col-12 col-md-4 order-md-2 order-first">
-                  <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
-                    <ol class="breadcrumb">
-                      <li class="breadcrumb-item"><a href="index.php">首頁</a></li>
-                      <li class="breadcrumb-item active" aria-current="page">AI預測總覽</li>
-                    </ol>
-                  </nav>
+                <div style="margin-bottom:18px;">
+                    <a href="?export_excel=1" class="btn btn-success" style="font-weight:bold;">
+                        匯出 Excel
+                    </a>
+                    <span style="margin-left:22px; color:#93f9b9; font-weight:bold; font-size:1.11em;">
+                        AI預測總花費：<?php echo round($ai_total_cost / 1000, 2); ?> 秒
+                    </span>
                 </div>
               </div>
+              <!-- 右側3D人頭，純渲染，無邊框、無背景、無按鈕 -->
+              <div id="head3d-container"></div>
             </div>
-            <div style="margin-bottom:18px;">
-              <a href="?export_excel=1" class="btn btn-success" style="font-weight:bold;">匯出 Excel</a>
-              <span style="margin-left:22px; color:#93f9b9; font-weight:bold; font-size:1.11em;">
-                AI預測總花費：<?php echo round($ai_total_cost / 1000, 2); ?> 秒
-              </span>
-            </div>
-            <!-- 🟦 標題＋3D人頭 區塊結束 -->
+            <!-- 🟦 標題＋3D人頭 flex 區塊結束 -->
 
             <section class="section">
                 <div id="accordion">
@@ -540,6 +544,7 @@ light.position.set(5,10,10);
 scene.add(light);
 
 let head;
+let rotateY = 0;
 const loader = new THREE.GLTFLoader();
 const MODEL_URL = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
 
@@ -554,6 +559,11 @@ loader.load(MODEL_URL, function(gltf) {
 
 function animate() {
   requestAnimationFrame(animate);
+  if (head) {
+    // 讓頭左右來回轉動，範圍 -30° ~ +30°
+    rotateY += 0.013;
+    head.rotation.y = Math.sin(rotateY) * (Math.PI / 6); // -30° ~ +30°
+  }
   renderer.render(scene, camera);
 }
 animate();
