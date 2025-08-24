@@ -1,0 +1,18 @@
+# General
+/.env
+/.env.*
+/vendor/
+/node_modules/
+/tests/coverage/
+
+# Laravel
+/src/vendor/
+/src/node_modules/
+/src/storage/
+/src/bootstrap/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+/api/__pycache__/
+/api/venv/
