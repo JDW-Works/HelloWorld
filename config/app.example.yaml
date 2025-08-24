@@ -1,0 +1,7 @@
+laravel:
+  app_name: TestSample
+  app_env: local
+  app_url: http://localhost
+api:
+  host: 127.0.0.1
+  port: 5000
